@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">EOG Mapper</string>
+    <string name="accessibility_service_description">이 서비스는 블루투스 입력을 감지하고 터치 이벤트를 발생시킵니다.</string>
+</resources>
