@@ -10,6 +10,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
+    <TextView
+        android:id="@+id/messageTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="초기 메시지"
+        android:textSize="18sp"
+        android:layout_centerInParent="true" />
+
     <Button
         android:id="@+id/btn_expand_status_bar"
         android:layout_width="wrap_content"
