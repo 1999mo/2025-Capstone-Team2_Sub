@@ -24,4 +24,10 @@
         android:layout_height="wrap_content"
         android:text="상단바 내리기"
         android:layout_marginTop="24dp"/>
+    <Button
+        android:id="@+id/obserber_Button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="안구추적 활성화"
+        android:layout_centerInParent="true"/>
 </LinearLayout>

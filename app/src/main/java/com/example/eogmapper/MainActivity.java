@@ -24,10 +24,13 @@ import android.widget.Toast;
 import androidx.annotation.RequiresPermission;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,8 +40,10 @@ public class MainActivity extends AppCompatActivity  {
     //여기서 많이 훔쳤습니다.
     private TextView mMessageTextView;
     private Handler mHandler;
-    private static final int REQUEST_ENABLE_BT = 1;
+    private static Boolean tracking = false;
     private static final int REQUEST_CODE_PERMISSIONS = 2;
+    LiveDataButton liveDataButton;
+
 
 
     BluetoothManager bluetoothManager;
@@ -52,6 +57,8 @@ public class MainActivity extends AppCompatActivity  {
     int readBufferPosition;
     String[] array = {"0"};
 
+    private Button observerAddButton;
+
 
 
     @Override
@@ -63,6 +70,8 @@ public class MainActivity extends AppCompatActivity  {
 
         // Create a Handler to post updates to the UI thread
         mHandler = new Handler(Looper.getMainLooper());
+
+
 
 
 
@@ -87,6 +96,8 @@ public class MainActivity extends AppCompatActivity  {
 //        }
         bluetoothManager = getSystemService(BluetoothManager.class);
         bluetoothAdapter = bluetoothManager.getAdapter();
+
+        liveDataButton = new ViewModelProvider(this).get(LiveDataButton.class);
 //
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
@@ -108,9 +119,29 @@ public class MainActivity extends AppCompatActivity  {
             Toast.makeText(getApplicationContext(), "Make Text", Toast.LENGTH_SHORT).show();
             connectDevice("EOG_DEVICE");
 
-            InputAccessibilityService.requestStatusBarDrag();
+//            InputAccessibilityService.requestStatusBarDrag();
         });
 
+        observerAddButton = findViewById(R.id.obserber_Button);
+        observerAddButton.setOnClickListener(v -> {
+            observer_EyeMovement();
+            tracking = true;
+        });
+
+
+
+
+    }
+    private void observer_EyeMovement() {
+        liveDataButton.getSensorValue().observe(this, new Observer<Float>() {
+            @Override
+            public void onChanged(Float value) {
+                if (value != null && value > 200.0f) {
+                    Toast.makeText(getApplicationContext(), "눈을 움직였군요(방향은 아직 몰라요)",Toast.LENGTH_SHORT).show();
+                    InputAccessibilityService.requestStatusBarDrag();
+                }
+            }
+        });
 
     }
 
@@ -173,6 +204,16 @@ public class MainActivity extends AppCompatActivity  {
                                                 @Override
                                                 public void run() {
                                                     mMessageTextView.setText(text);
+                                                    if(tracking ==true) {
+                                                        String[] temp = text.split(",");
+                                                        String[] temp2 = temp[0].split(":");
+                                                        float x = Float.parseFloat(temp2[1]);
+                                                        temp2 = temp[1].split(":");
+                                                        float y = Float.parseFloat(temp2[1]);
+                                                        liveDataButton.setSensorValue(Math.abs(x-y));
+                                                    }
+//
+                                                    //센서값을 읽고 만약에 절대값이 일정 값보다 클경우.
                                                 }
                                             });
                                         }
