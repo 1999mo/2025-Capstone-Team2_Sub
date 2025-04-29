@@ -24,7 +24,7 @@ import java.util.UUID;
 public class ForegroundService extends Service {
 
     private static final String CHANNEL_ID = "channelId";
-    private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // 일반 SPP UUID
+    public static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // 일반 SPP UUID
 
     @Override
     public void onCreate() {

@@ -37,6 +37,7 @@ android {
 
 dependencies {
 
+    implementation("no.nordicsemi.android:ble:2.10.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
