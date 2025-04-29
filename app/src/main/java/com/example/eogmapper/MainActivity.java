@@ -34,6 +34,13 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.provider.Settings;
+import androidx.appcompat.app.AppCompatActivity;
+
 public class MainActivity extends AppCompatActivity  {
 
     //https://blog.naver.com/ori_kku/222383254872
@@ -60,6 +67,7 @@ public class MainActivity extends AppCompatActivity  {
     private Button observerAddButton;
 
 
+    private static final int OVERLAY_PERMISSION_REQ_CODE = 1234;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,9 +79,20 @@ public class MainActivity extends AppCompatActivity  {
         // Create a Handler to post updates to the UI thread
         mHandler = new Handler(Looper.getMainLooper());
 
+        // Brigtness Control overlay button permission
+        if (!Settings.System.canWrite(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                    Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        }
 
-
-
+        if (!Settings.canDrawOverlays(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE);
+        } else {
+            startService(new Intent(this, FloatingButtonService.class));
+        }
 
 
 // 권한 확인 후 없을시 권한 요청
@@ -132,6 +151,16 @@ public class MainActivity extends AppCompatActivity  {
 
 
     }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {
+            if (Settings.canDrawOverlays(this)) {
+                startService(new Intent(this, FloatingButtonService.class));
+                finish();
+            }
+        }
+    }
+
     private void observer_EyeMovement() {
         liveDataButton.getSensorValue().observe(this, new Observer<Float>() {
             @Override
