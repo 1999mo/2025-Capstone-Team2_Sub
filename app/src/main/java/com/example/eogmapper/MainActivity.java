@@ -51,8 +51,6 @@ public class MainActivity extends AppCompatActivity  {
     private static final int REQUEST_CODE_PERMISSIONS = 2;
     LiveDataButton liveDataButton;
 
-
-
     BluetoothManager bluetoothManager;
     BluetoothAdapter bluetoothAdapter;
     BluetoothDevice bluetoothDevice;
@@ -65,38 +63,41 @@ public class MainActivity extends AppCompatActivity  {
     String[] array = {"0"};
 
     private Button observerAddButton;
-
-
-    private static final int OVERLAY_PERMISSION_REQ_CODE = 1234;
+    private static final int REQUEST_CODE_WRITE_SETTINGS = 1001;
+    private static final int REQUEST_CODE_DRAW_OVERLAY = 1002;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 먼저 WRITE_SETTINGS 체크
+        if (!Settings.System.canWrite(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, REQUEST_CODE_WRITE_SETTINGS);
+            return;
+        }
+
+        // OVERLAY 권한 체크
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                !Settings.canDrawOverlays(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, REQUEST_CODE_DRAW_OVERLAY);
+            return;
+        }
+
+        // 모든 권한 확인 후 오버레이 서비스 실행
+        startService(new Intent(this, OverlayButtonService.class));
+        finish(); // 액티비티 종료
+
         mMessageTextView = findViewById(R.id.messageTextView);  // Initialize TextView
 
         // Create a Handler to post updates to the UI thread
         mHandler = new Handler(Looper.getMainLooper());
 
-        // Brigtness Control overlay button permission
-        if (!Settings.System.canWrite(this)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
-                    Uri.parse("package:" + getPackageName()));
-            startActivity(intent);
-        }
-
-        if (!Settings.canDrawOverlays(this)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE);
-        } else {
-            startService(new Intent(this, FloatingButtonService.class));
-        }
-
-
-// 권한 확인 후 없을시 권한 요청
-
+        // Bluetooth 관련 권한
         if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_DENIED) {
             requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN}, 10);
         }
@@ -109,15 +110,14 @@ public class MainActivity extends AppCompatActivity  {
         if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_DENIED) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 10);
         }
-//        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-//        if(!bluetoothAdapter.isEnabled()) {
-//            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-//        }
+        // Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        // if(!bluetoothAdapter.isEnabled()) {
+        //     startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        // }
         bluetoothManager = getSystemService(BluetoothManager.class);
         bluetoothAdapter = bluetoothManager.getAdapter();
 
         liveDataButton = new ViewModelProvider(this).get(LiveDataButton.class);
-//
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
         if (!pairedDevices.isEmpty()) {
@@ -128,9 +128,8 @@ public class MainActivity extends AppCompatActivity  {
                 if(deviceName.equals("EOG_DEVICE")) bluetoothDevice = device;
             }
         }
-//        ConnectThread btThread = new ConnectThread(EOG_DEVICE, mHandler, mMessageTextView);
-//        btThread.run();
-
+        // ConnectThread btThread = new ConnectThread(EOG_DEVICE, mHandler, mMessageTextView);
+        // btThread.run();
 
         Button btnExpand = findViewById(R.id.btn_expand_status_bar);
         btnExpand.setOnClickListener(v -> {
@@ -138,7 +137,7 @@ public class MainActivity extends AppCompatActivity  {
             Toast.makeText(getApplicationContext(), "Make Text", Toast.LENGTH_SHORT).show();
             connectDevice("EOG_DEVICE");
 
-//            InputAccessibilityService.requestStatusBarDrag();
+        // InputAccessibilityService.requestStatusBarDrag();
         });
 
         observerAddButton = findViewById(R.id.obserber_Button);
@@ -146,18 +145,20 @@ public class MainActivity extends AppCompatActivity  {
             observer_EyeMovement();
             tracking = true;
         });
-
-
-
-
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {
-            if (Settings.canDrawOverlays(this)) {
-                startService(new Intent(this, FloatingButtonService.class));
-                finish();
-            }
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_WRITE_SETTINGS &&
+                Settings.System.canWrite(this)) {
+            recreate(); // 다시 onCreate 실행
+        }
+
+        if (requestCode == REQUEST_CODE_DRAW_OVERLAY &&
+                Settings.canDrawOverlays(this)) {
+            recreate(); // 다시 onCreate 실행
         }
     }
 
@@ -171,7 +172,6 @@ public class MainActivity extends AppCompatActivity  {
                 }
             }
         });
-
     }
 
     public void connectDevice(String deviceName) {
