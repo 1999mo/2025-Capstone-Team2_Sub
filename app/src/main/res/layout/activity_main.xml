@@ -30,4 +30,22 @@
         android:layout_height="wrap_content"
         android:text="안구추적 활성화"
         android:layout_centerInParent="true"/>
+
+    <Button
+        android:id="@+id/direction_check_start_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="방향 측정 시작"
+        android:layout_marginTop="20dp"
+        android:layout_gravity="center" />
+
+    <TextView
+        android:id="@+id/direction_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="방향 측정 대기 중"
+        android:textSize="24sp"
+        android:layout_centerInParent="true"/>
+
+
 </LinearLayout>

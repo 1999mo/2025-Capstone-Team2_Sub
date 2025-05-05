@@ -7,39 +7,29 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
-import androidx.annotation.RequiresPermission;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
-import android.content.Intent;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
 import android.provider.Settings;
-import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity  {
 
@@ -50,8 +40,6 @@ public class MainActivity extends AppCompatActivity  {
     private static Boolean tracking = false;
     private static final int REQUEST_CODE_PERMISSIONS = 2;
     LiveDataButton liveDataButton;
-
-
 
     BluetoothManager bluetoothManager;
     BluetoothAdapter bluetoothAdapter;
@@ -65,9 +53,8 @@ public class MainActivity extends AppCompatActivity  {
     String[] array = {"0"};
 
     private Button observerAddButton;
-
-
-    private static final int OVERLAY_PERMISSION_REQ_CODE = 1234;
+    private static final int REQUEST_CODE_WRITE_SETTINGS = 1001;
+    private static final int REQUEST_CODE_DRAW_OVERLAY = 1002;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,24 +66,7 @@ public class MainActivity extends AppCompatActivity  {
         // Create a Handler to post updates to the UI thread
         mHandler = new Handler(Looper.getMainLooper());
 
-        // Brigtness Control overlay button permission
-        if (!Settings.System.canWrite(this)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
-                    Uri.parse("package:" + getPackageName()));
-            startActivity(intent);
-        }
-
-        if (!Settings.canDrawOverlays(this)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE);
-        } else {
-            startService(new Intent(this, FloatingButtonService.class));
-        }
-
-
-// 권한 확인 후 없을시 권한 요청
-
+        // Bluetooth 관련 권한
         if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_DENIED) {
             requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN}, 10);
         }
@@ -109,15 +79,14 @@ public class MainActivity extends AppCompatActivity  {
         if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_DENIED) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 10);
         }
-//        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-//        if(!bluetoothAdapter.isEnabled()) {
-//            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-//        }
+        // Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        // if(!bluetoothAdapter.isEnabled()) {
+        //     startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        // }
         bluetoothManager = getSystemService(BluetoothManager.class);
         bluetoothAdapter = bluetoothManager.getAdapter();
 
         liveDataButton = new ViewModelProvider(this).get(LiveDataButton.class);
-//
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
         if (!pairedDevices.isEmpty()) {
@@ -128,17 +97,15 @@ public class MainActivity extends AppCompatActivity  {
                 if(deviceName.equals("EOG_DEVICE")) bluetoothDevice = device;
             }
         }
-//        ConnectThread btThread = new ConnectThread(EOG_DEVICE, mHandler, mMessageTextView);
-//        btThread.run();
+        // ConnectThread btThread = new ConnectThread(EOG_DEVICE, mHandler, mMessageTextView);
+        // btThread.run();
 
-
+        // 블루투스 연결 액션 버튼에 연결
         Button btnExpand = findViewById(R.id.btn_expand_status_bar);
         btnExpand.setOnClickListener(v -> {
             // InputAccessibilityService를 통해 드래그 액션 요청
             Toast.makeText(getApplicationContext(), "Make Text", Toast.LENGTH_SHORT).show();
             connectDevice("EOG_DEVICE");
-
-//            InputAccessibilityService.requestStatusBarDrag();
         });
 
         observerAddButton = findViewById(R.id.obserber_Button);
@@ -148,16 +115,81 @@ public class MainActivity extends AppCompatActivity  {
         });
 
 
+        // 방향 측정
+        int IDLE_TIME = 2000; // . 상태로 기다리는 시간
+        int WAIT_TIME = 2000; // 방향 보여 주고 유지하는 시간
 
+        TextView directionText = findViewById(R.id.direction_text);
+        Button direction_check_start_button = findViewById(R.id.direction_check_start_button);
+        // 버튼 클릭 시 방향 측정 시작
+        direction_check_start_button.setOnClickListener(v -> {
+            Thread directionThread = new Thread(() -> {
+                for (int i = 0; i < 10; i++) {
+                    mHandler.post(() -> directionText.setText("방향\n."));
 
+                    try { Thread.sleep(IDLE_TIME); } catch (Exception ignored) {}
+
+                    mHandler.post(() -> {
+                        String direction;
+                        if (Math.random() > 0.5) {
+                            direction = "RIGHT";
+                            directionText.setText("방향\n→");
+                        } else {
+                            direction = "LEFT";
+                            directionText.setText("방향\n←");
+                        }
+
+                        // 로그 작성
+                        // Download 폴더에 저장됨
+                        // 파일명 direction_log.txt
+                        long now = System.currentTimeMillis();
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("mm:ss:SSS");
+                        String currentTime = sdf.format(new java.util.Date(now));
+                        String logLine = "[" + currentTime + "] " + direction + "\n";
+
+                        writeLog(logLine);
+                    });
+
+                    try { Thread.sleep(WAIT_TIME); } catch (Exception ignored) {}
+                }
+
+                mHandler.post(() -> directionText.setText("종료"));
+            });
+
+            directionThread.start();
+        });
     }
+
+    // 로그 파일에 문자열을 추가하는 메서드
+    private void writeLog(String log) {
+        try {
+            // Downloads 폴더 경로 가져오기
+            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+            // 로그 파일 준비 (파일명이 없으면 새로 생성됨)
+            File logFile = new File(downloadsDir, "direction_log.txt");
+
+            FileWriter writer = new FileWriter(logFile, true); // true로 하면 append(추가) 모드
+            writer.append(log);
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {
-            if (Settings.canDrawOverlays(this)) {
-                startService(new Intent(this, FloatingButtonService.class));
-                finish();
-            }
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_WRITE_SETTINGS &&
+                Settings.System.canWrite(this)) {
+            recreate(); // 다시 onCreate 실행
+        }
+
+        if (requestCode == REQUEST_CODE_DRAW_OVERLAY &&
+                Settings.canDrawOverlays(this)) {
+            recreate(); // 다시 onCreate 실행
         }
     }
 
@@ -167,11 +199,9 @@ public class MainActivity extends AppCompatActivity  {
             public void onChanged(Float value) {
                 if (value != null && value > 200.0f) {
                     Toast.makeText(getApplicationContext(), "눈을 움직였군요(방향은 아직 몰라요)",Toast.LENGTH_SHORT).show();
-                    InputAccessibilityService.requestStatusBarDrag();
                 }
             }
         });
-
     }
 
     public void connectDevice(String deviceName) {
@@ -191,6 +221,12 @@ public class MainActivity extends AppCompatActivity  {
             if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_DENIED) {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 10);
             }
+
+            if (bluetoothDevice == null) {
+                Toast.makeText(getApplicationContext(), "Bluetooth device not found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
             bluetoothSocket.connect();
 
@@ -228,46 +264,62 @@ public class MainActivity extends AppCompatActivity  {
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            //센서값 여기에
-                                            handler.post(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    mMessageTextView.setText(text);
-                                                    if(tracking ==true) {
-                                                        String[] temp = text.split(",");
-                                                        String[] temp2 = temp[0].split(":");
-                                                        float x = Float.parseFloat(temp2[1]);
-                                                        temp2 = temp[1].split(":");
-                                                        float y = Float.parseFloat(temp2[1]);
-                                                        liveDataButton.setSensorValue(Math.abs(x-y));
-                                                    }
-//
-                                                    //센서값을 읽고 만약에 절대값이 일정 값보다 클경우.
-                                                }
-                                            });
+                                            mMessageTextView.setText(text);
+                                            if(tracking) {
+                                                String[] temp = text.split(",");
+                                                String[] temp2 = temp[0].split(":");
+                                                float x = Float.parseFloat(temp2[1]);
+                                                temp2 = temp[1].split(":");
+                                                float y = Float.parseFloat(temp2[1]);
+                                                liveDataButton.setSensorValue(Math.abs(x-y));
+                                                processSensorData(x, y);
+                                            }
                                         }
                                     });
-                                }
-                                else {
+                                } else {
                                     readBuffer[readBufferPosition++] = tempByte;
                                 }
-
                             }
                         }
-
+                        try{ Thread.sleep(1000/8);}
+                        catch (InterruptedException ignored) {}
                     }catch (IOException e) {
                         e.printStackTrace();
                     }
-                }try{
-                    Thread.sleep(1000/8);
-                }
-                catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
-
         });
         workerThread.start();
     }
+    private static final int THRESHOLD = 200;
+    private long lastLoggedTime = 0; //
+    public void processSensorData(float x, float y) {
+        long currentTime = System.currentTimeMillis();
 
+        // 마지막 기록 이후 1500ms가 지났는지 체크
+        if (currentTime - lastLoggedTime < 1500) {
+            // 아직 쿨타임
+            return;
+        }
+
+        String direction = null;
+
+        if (x > THRESHOLD) {
+            direction = "LEFT";
+        } else if (x < -THRESHOLD) {
+            direction = "RIGHT";
+        }
+
+        if (direction != null) {
+            // 로그 작성
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("mm:ss:SSS");
+            String formattedTime = sdf.format(new java.util.Date(currentTime));
+
+            String logLine = "[" + formattedTime + "]          EOG SIGNAL: " + direction + "\n\n";
+            writeLog(logLine);
+
+            // 마지막 기록 시간 갱신 (쿨타임 시작)
+            lastLoggedTime = currentTime;
+        }
+    }
 }
