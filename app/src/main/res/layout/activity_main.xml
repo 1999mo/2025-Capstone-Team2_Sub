@@ -6,30 +6,18 @@
     android:padding="24dp">
 
     <TextView
-        android:text="앱이 실행되었습니다"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-
-    <TextView
-        android:id="@+id/messageTextView"
+        android:id="@+id/textViewStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="초기 메시지"
-        android:textSize="18sp"
-        android:layout_centerInParent="true" />
+        android:text="EOG 상태 대기중"
+        android:textSize="20sp" />
 
     <Button
-        android:id="@+id/btn_expand_status_bar"
+        android:id="@+id/buttonConnect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="상단바 내리기"
-        android:layout_marginTop="24dp"/>
-    <Button
-        android:id="@+id/obserber_Button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="안구추적 활성화"
-        android:layout_centerInParent="true"/>
+        android:text="EOG 장치 연결하기"
+        android:layout_marginTop="20dp"/>
 
     <Button
         android:id="@+id/direction_check_start_button"
@@ -46,6 +34,5 @@
         android:text="방향 측정 대기 중"
         android:textSize="24sp"
         android:layout_centerInParent="true"/>
-
 
 </LinearLayout>

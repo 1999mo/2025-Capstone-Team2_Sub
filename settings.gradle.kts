@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "EOG Mapper"
 include(":app")
- 
+include(":EOGmodule")
