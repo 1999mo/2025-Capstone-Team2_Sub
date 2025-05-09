@@ -1,5 +1,9 @@
 package com.example.eogmodule;
 
+import static androidx.core.app.ActivityCompat.requestPermissions;
+
+import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -8,6 +12,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 
@@ -18,7 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class BluetoothHelper {
-
+    private static final int REQUEST_CODE_PERMISSIONS = 10;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothDevice bluetoothDevice;
     private BluetoothSocket bluetoothSocket;
@@ -28,6 +33,7 @@ public class BluetoothHelper {
     private Context context;
 
     private ConnectionListener listener;
+
 
     public interface ConnectionListener {
         void onConnected();
@@ -46,9 +52,18 @@ public class BluetoothHelper {
     }
 
     public void connect(String deviceName, UUID uuid) {
+
+        if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions((Activity) context,new String[]{Manifest.permission.BLUETOOTH_SCAN}, REQUEST_CODE_PERMISSIONS);
+        }
         if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            if (listener != null) listener.onConnectionFailed("No Bluetooth permissions");
-            return;
+            requestPermissions((Activity) context, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, REQUEST_CODE_PERMISSIONS);
+        }
+        if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions((Activity) context, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_PERMISSIONS);
+        }
+        if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions((Activity) context, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE_PERMISSIONS);
         }
 
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
@@ -84,6 +99,7 @@ public class BluetoothHelper {
                 }
             }
         }).start();
+        Toast.makeText(context.getApplicationContext(), "Start Connection", Toast.LENGTH_SHORT).show();
     }
 
     private void readData() {

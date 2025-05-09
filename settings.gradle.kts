@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "EOG Mapper"
 include(":app")
 include(":EOGmodule")
+project(":EOGmodule").projectDir = File(rootDir, "EOGmodule")

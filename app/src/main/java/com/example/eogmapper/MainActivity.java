@@ -13,13 +13,13 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.eogmodule.EOGManager;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.UUID;
 
-
-import com.example.eogmodule.EOGManager;
 
 public class MainActivity extends AppCompatActivity  {
 
@@ -80,7 +80,8 @@ public class MainActivity extends AppCompatActivity  {
 
         // 버튼 클릭 → 연결 시작
         buttonConnect.setOnClickListener(v -> {
-            Toast.makeText(this, "블루투스 연결 시도중...", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "블루투스 연결 시도중...", Toast.LENGTH_SHORT).show();
+            checkBluetoothPermissions();
             eogManager.connect(DEVICE_NAME, MY_UUID);
         });
 
