@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,6 +19,7 @@ import com.example.eogmodule.EOGManager;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.UUID;
 
 
@@ -64,31 +66,83 @@ public class MainActivity extends AppCompatActivity  {
 
         // EOGManager 초기화
         eogManager = new EOGManager(this);
+
+        // 리스너 등록
         eogManager.setEOGEventListener(new EOGManager.EOGEventListener() {
             @Override
-            public void onEyeMovement(String direction) {
-                String message = "눈 움직임 감지됨: " + direction;
-                textViewStatus.setText(message);
-                Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
             public void onRawData(String rawData) {
-                // 수신한 원본 데이터 처리
+                // 원본 데이터 이용 가능
             }
         });
 
-        // 버튼 클릭 → 연결 시작
+        // 2) 리스너 등록
+        // 예시1 - LEFT, RIGHT
+        eogManager.setHorizontalListener(direction -> {
+            String message = "Horizontal move: " + direction;
+            textViewStatus.setText(message);
+            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+        });
+
+        // 예시2 - UP, DOWN
+        eogManager.setVerticalListener(direction -> {
+            String message = null;
+            if (direction.equals("UP")) {
+                // 이곳에 UP 신호가 올 때 액션을 작성
+                message = "UP";
+            } else if (direction.equals("DOWN")) {
+                // 이곳에 DOWN 신호가 올 때 액션을 작성
+                message = "DOWN";
+            }
+
+            textViewStatus.setText(message);
+            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+        });
+
+        // 예시3 -
+        eogManager.setSectionListener(section -> {
+            String message;
+            switch (section) {
+                case 1:
+                    // 섹션 1일 때 액션 작성
+                    message = "Section 1 activated";
+                    break;
+                case 2:
+                    // 섹션 2일 때 액션 작성
+                    message = "Section 2 activated";
+                    break;
+
+                /*
+                * 생략
+                */
+
+                case 7:
+                    // 섹션 7일 때 액션 작성
+                    message = "Section 7 activated";
+                    break;
+                case 8:
+                    // 섹션 8일 때 액션 작성
+                    message = "Section 8 activated";
+                    break;
+                default:
+                    message = "Unknown section: " + section;
+            }
+        });
+
+        // 버튼 클릭 -> 블루투스 연결
         buttonConnect.setOnClickListener(v -> {
             //Toast.makeText(this, "블루투스 연결 시도중...", Toast.LENGTH_SHORT).show();
             checkBluetoothPermissions();
             eogManager.connect(DEVICE_NAME, MY_UUID);
         });
 
+
+        // 이 아래는 데이터 수집용 코드
+
         // 방향 측정
         TextView directionText = findViewById(R.id.direction_text);
         Button directionCheckStartButton = findViewById(R.id.direction_check_start_button);
         setupDirectionCheck(directionText, directionCheckStartButton);
+        //
     }
 
     private void checkBluetoothPermissions() {
