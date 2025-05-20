@@ -1,38 +1,146 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_container"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/textViewStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="EOG 상태 대기중"
-        android:textSize="20sp" />
+    <!-- 일반 모드 레이아웃 -->
+    <LinearLayout
+        android:id="@+id/layout_normal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp">
 
-    <Button
-        android:id="@+id/buttonConnect"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="EOG 장치 연결하기"
-        android:layout_marginTop="20dp"/>
+        <TextView
+            android:id="@+id/textViewStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="EOG 상태 대기중"
+            android:textSize="20sp" />
 
-    <Button
-        android:id="@+id/direction_check_start_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="방향 측정 시작"
-        android:layout_marginTop="20dp"
-        android:layout_gravity="center" />
+        <Button
+            android:id="@+id/buttonConnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="EOG 장치 연결하기"
+            android:layout_marginTop="20dp"/>
 
-    <TextView
-        android:id="@+id/direction_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="방향 측정 대기 중"
-        android:textSize="24sp"
-        android:layout_centerInParent="true"/>
+        <Button
+            android:id="@+id/direction_check_start_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="방향 측정 시작"
+            android:layout_marginTop="20dp"
+            android:layout_gravity="center" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/direction_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="방향 측정 대기 중"
+            android:textSize="24sp"
+            android:layout_centerInParent="true"/>
+
+        <Button
+            android:id="@+id/data_collection_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="데이터 수집 시작"
+            android:layout_marginTop="20dp"
+            android:layout_gravity="center" />
+    </LinearLayout>
+
+    <!-- 데이터 수집 모드 레이아웃 (초기에는 숨김) -->
+    <GridLayout
+        android:id="@+id/layout_datacollect"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:rowCount="2"
+        android:columnCount="4"
+        android:useDefaultMargins="true"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/section1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_row="0"
+            android:layout_column="0"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:background="#CCCCCC" />
+
+        <View
+            android:id="@+id/section2"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_row="0"
+            android:layout_column="1"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:background="#CCCCCC" />
+
+        <View
+            android:id="@+id/section3"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_row="0"
+            android:layout_column="2"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:background="#CCCCCC" />
+
+        <View
+            android:id="@+id/section4"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_row="0"
+            android:layout_column="3"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:background="#CCCCCC" />
+
+        <View
+            android:id="@+id/section5"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_row="1"
+            android:layout_column="0"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:background="#CCCCCC" />
+
+        <View
+            android:id="@+id/section6"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_row="1"
+            android:layout_column="1"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:background="#CCCCCC" />
+
+        <View
+            android:id="@+id/section7"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_row="1"
+            android:layout_column="2"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:background="#CCCCCC" />
+
+        <View
+            android:id="@+id/section8"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_row="1"
+            android:layout_column="3"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:background="#CCCCCC" />
+
+    </GridLayout>
+</FrameLayout>

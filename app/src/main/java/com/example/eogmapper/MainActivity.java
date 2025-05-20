@@ -3,43 +3,51 @@ package com.example.eogmapper;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.eogmodule.EOGManager;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 
 public class MainActivity extends AppCompatActivity  {
-
-    private Handler mHandler;
-
     private static final String DEVICE_NAME = "EOG_DEVICE";
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // UUID로 교체
 
     private static final int REQUEST_CODE_PERMISSIONS = 10;
 
     private EOGManager eogManager;
-
-    private TextView textViewStatus;
-    private Button buttonConnect;
+    private Handler handler = new Handler();
+    private Random random = new Random();
 
     private BluetoothManager bluetoothManager;
     private BluetoothAdapter bluetoothAdapter;
 
+    private boolean isDataMode = false;
+
+    private List<View> sections = new ArrayList<>();
+    private int prevIndex = -1;
+    private int iteration = 0;
+    private static final int TOTAL_ITER = 20;
+    private View layoutNormal, layoutDataCollect;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,8 +56,19 @@ public class MainActivity extends AppCompatActivity  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        textViewStatus = findViewById(R.id.textViewStatus);
-        buttonConnect = findViewById(R.id.buttonConnect);
+        layoutNormal      = findViewById(R.id.layout_normal);
+        layoutDataCollect = findViewById(R.id.layout_datacollect);
+        Button btnConnect = findViewById(R.id.buttonConnect);
+        Button btnData    = findViewById(R.id.data_collection_button);
+
+        // 로그 기록용 권한 요청
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_CODE_PERMISSIONS);
+        }
 
         // Bluetooth 권한 체크 및 요청
         checkBluetoothPermissions();
@@ -67,68 +86,8 @@ public class MainActivity extends AppCompatActivity  {
         // EOGManager 초기화
         eogManager = new EOGManager(this);
 
-        // 리스너 등록
-        eogManager.setEOGEventListener(new EOGManager.EOGEventListener() {
-            @Override
-            public void onRawData(String rawData) {
-                // 원본 데이터 이용 가능
-            }
-        });
-
-        // 2) 리스너 등록
-        // 예시1 - LEFT, RIGHT
-        eogManager.setHorizontalListener(direction -> {
-            String message = "Horizontal move: " + direction;
-            textViewStatus.setText(message);
-            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-        });
-
-        // 예시2 - UP, DOWN
-        eogManager.setVerticalListener(direction -> {
-            String message = null;
-            if (direction.equals("UP")) {
-                // 이곳에 UP 신호가 올 때 액션을 작성
-                message = "UP";
-            } else if (direction.equals("DOWN")) {
-                // 이곳에 DOWN 신호가 올 때 액션을 작성
-                message = "DOWN";
-            }
-
-            textViewStatus.setText(message);
-            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-        });
-
-        // 예시3 -
-        eogManager.setSectionListener(section -> {
-            String message;
-            switch (section) {
-                case 1:
-                    // 섹션 1일 때 액션 작성
-                    message = "Section 1 activated";
-                    break;
-                case 2:
-                    // 섹션 2일 때 액션 작성
-                    message = "Section 2 activated";
-                    break;
-
-                /*
-                * 생략
-                */
-
-                case 7:
-                    // 섹션 7일 때 액션 작성
-                    message = "Section 7 activated";
-                    break;
-                case 8:
-                    // 섹션 8일 때 액션 작성
-                    message = "Section 8 activated";
-                    break;
-                default:
-                    message = "Unknown section: " + section;
-            }
-        });
-
         // 버튼 클릭 -> 블루투스 연결
+        Button buttonConnect = findViewById(R.id.buttonConnect);
         buttonConnect.setOnClickListener(v -> {
             //Toast.makeText(this, "블루투스 연결 시도중...", Toast.LENGTH_SHORT).show();
             checkBluetoothPermissions();
@@ -136,13 +95,69 @@ public class MainActivity extends AppCompatActivity  {
         });
 
 
-        // 이 아래는 데이터 수집용 코드
+        // 데이터 수집 시작 버튼
+        Button dataCollectBtn = findViewById(R.id.data_collection_button);
+        dataCollectBtn.setOnClickListener(v -> {
+            // layout 전환
+            findViewById(R.id.layout_normal).setVisibility(View.GONE);
+            findViewById(R.id.layout_datacollect).setVisibility(View.VISIBLE);
 
-        // 방향 측정
-        TextView directionText = findViewById(R.id.direction_text);
-        Button directionCheckStartButton = findViewById(R.id.direction_check_start_button);
-        setupDirectionCheck(directionText, directionCheckStartButton);
-        //
+            // 화면 가로 고정
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            initSections();
+
+            // 3초 뒤 시작
+            handler.postDelayed(this::startSequence, 3000);
+        });
+    }
+
+    private void startSequence() {
+        iteration = 0;
+        prevIndex = -1;
+        handler.post(this::changeSection);
+    }
+
+    private void changeSection() {
+        if (iteration >= TOTAL_ITER) {
+            // 종료
+            return;
+        }
+        // 랜덤 섹션 선택 (이전과 다르게)
+        int idx;
+        do {
+            idx = random.nextInt(sections.size());
+        } while (idx == prevIndex);
+        prevIndex = idx;
+
+        View sec = sections.get(idx);
+
+        // 색 변경
+        int originalColor = 0xFFCCCCCC;
+        int highlightColor = 0xffb5d692;
+        sec.setBackgroundColor(highlightColor);
+
+        writeLog("SECTION " + (idx+1) + "\n");
+
+        // 1초 후 색 복원 & 다음 반복
+        handler.postDelayed(() -> {
+            sec.setBackgroundColor(originalColor);
+            iteration++;
+            changeSection();
+        }, 1500);
+    }
+
+    private void initSections() {
+        sections.clear();
+        sections.add(findViewById(R.id.section1));
+        sections.add(findViewById(R.id.section2));
+        sections.add(findViewById(R.id.section3));
+        sections.add(findViewById(R.id.section4));
+        sections.add(findViewById(R.id.section5));
+        sections.add(findViewById(R.id.section6));
+        sections.add(findViewById(R.id.section7));
+        sections.add(findViewById(R.id.section8));
+
+        eogManager.setEOGEventListener(rawData -> writeLog(rawData + "\n"));
     }
 
     private void checkBluetoothPermissions() {
@@ -160,56 +175,12 @@ public class MainActivity extends AppCompatActivity  {
         }
     }
 
-    private void setupDirectionCheck(TextView directionText, Button directionCheckStartButton) {
-
-        final int IDLE_TIME = 2000;     // . 상태로 대기 시간
-        final int WAIT_TIME = 2000;     // 방향 보여 주고 유지 시간
-        final int MEASURE_COUNT = 10;   // 측정 횟수
-
-        directionCheckStartButton.setOnClickListener(v -> {
-            Thread directionThread = new Thread(() -> {
-                for (int i = 0; i < MEASURE_COUNT; i++) {
-                    mHandler.post(() -> directionText.setText("방향\n."));
-
-                    try { Thread.sleep(IDLE_TIME); } catch (Exception ignored) {}
-
-                    mHandler.post(() -> {
-                        String direction;
-                        if (Math.random() > 0.5) {
-                            direction = "RIGHT";
-                            directionText.setText("방향\n→");
-                        } else {
-                            direction = "LEFT";
-                            directionText.setText("방향\n←");
-                        }
-
-                        // 로그 작성
-                        // 파일명 direction_log.txt
-                        // Download 폴더에 저장됨
-                        long now = System.currentTimeMillis();
-                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("mm:ss:SSS");
-                        String currentTime = sdf.format(new java.util.Date(now));
-                        String logLine = "[" + currentTime + "] " + direction + "\n";
-
-                        writeLog(logLine);
-                    });
-
-                    try { Thread.sleep(WAIT_TIME); } catch (Exception ignored) {}
-                }
-
-                mHandler.post(() -> directionText.setText("종료"));
-            });
-
-            directionThread.start();
-        });
-    }
-
     // 로그 파일에 문자열을 추가
     private void writeLog(String log) {
         try {
             // Downloads 폴더 경로
             File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            File logFile = new File(downloadsDir, "direction_log.txt");
+            File logFile = new File(downloadsDir, "EOG_log.txt");
 
             FileWriter writer = new FileWriter(logFile, true); // true로 하면 append(추가) 모드
             writer.append(log);
