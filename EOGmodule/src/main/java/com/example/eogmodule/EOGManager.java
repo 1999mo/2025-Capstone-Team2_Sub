@@ -71,7 +71,7 @@ public class EOGManager {
             direction = x < 0 ? "LEFT" : "RIGHT";
             x_prevTime = System.currentTimeMillis();
         }
-        if(eyeBlinkDetector) {
+        if(eyeHorizontalMovementDetector) {
             long x_currentTime = System.currentTimeMillis();
             if (x_currentTime - x_prevTime > 1500) {
                 //단순한 타임아웃
