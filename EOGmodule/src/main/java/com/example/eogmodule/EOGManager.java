@@ -28,7 +28,8 @@ public class EOGManager {
             public void onConnected() {}
 
             @Override
-            public void onConnectionFailed(String reason) {}
+            public void onConnectionFailed(String reason) {
+            }
 
             @Override
             public void onDataReceived(String data) {
@@ -58,8 +59,6 @@ public class EOGManager {
         float y = Float.parseFloat(temp2[1]);
 
         String direction = null;
-        if (x > 250) direction = "LEFT";
-        else if (x < -250) direction = "RIGHT";
 
         /*
         *
@@ -69,19 +68,18 @@ public class EOGManager {
         * */
         if(Math.abs(x) > 0.35 && !eyeHorizontalMovementDetector) {
             eyeHorizontalMovementDetector = true;
-            if(x < 0) direction = "LEFT";
-            else if(x > 0) direction = "RIGHT";
+            direction = x < 0 ? "LEFT" : "RIGHT";
             x_prevTime = System.currentTimeMillis();
         }
         if(eyeBlinkDetector) {
             long x_currentTime = System.currentTimeMillis();
-            if (x_currentTime - y_prevTime > 1500) {
+            if (x_currentTime - x_prevTime > 1500) {
                 //단순한 타임아웃
                 eyeHorizontalMovementDetector = false;
             }
         }
 
-        if (y > 0.5 && !eyeBlinkDetector) {
+        if (y > 0.7 && !eyeBlinkDetector) {
             eyeBlinkDetector = true;
             y_prevTime = System.currentTimeMillis();
         }
