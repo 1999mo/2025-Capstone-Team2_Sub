@@ -102,6 +102,7 @@ public class BluetoothHelper {
         Toast.makeText(context.getApplicationContext(), "Start Connection", Toast.LENGTH_SHORT).show();
     }
 
+    static int SAMPLEINGRATE = (int)1000/75; //바로 아래 ReadData에서 사용할 샘플링 스피드
     private void readData() {
         byte[] buffer = new byte[1024];
         int bufferPosition = 0;
@@ -131,7 +132,7 @@ public class BluetoothHelper {
                     }
                 }
 
-                Thread.sleep(125);
+                Thread.sleep(SAMPLEINGRATE);
             } catch (Exception e) {
                 e.printStackTrace();
                 break;

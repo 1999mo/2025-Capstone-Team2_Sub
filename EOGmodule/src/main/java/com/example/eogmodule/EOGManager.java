@@ -1,6 +1,8 @@
 package com.example.eogmodule;
 
 import android.content.Context;
+import android.widget.Toast;
+
 import java.util.UUID;
 
 public class EOGManager {
@@ -8,6 +10,10 @@ public class EOGManager {
     private BluetoothHelper bluetoothHelper;
     private Context context;
     private EOGEventListener eogEventListener;
+    private static long y_prevTime = 0;
+    private static long x_prevTime = 0;
+    private static boolean eyeBlinkDetector = false;
+    private static boolean eyeHorizontalMovementDetector = false;
 
     public interface EOGEventListener {
         void onEyeMovement(String direction);
@@ -52,8 +58,47 @@ public class EOGManager {
         float y = Float.parseFloat(temp2[1]);
 
         String direction = null;
-        if (x > 200) direction = "LEFT";
-        else if (x < -200) direction = "RIGHT";
+        if (x > 250) direction = "LEFT";
+        else if (x < -250) direction = "RIGHT";
+
+        /*
+        *
+        * x는 액션이 발생하는 순간 방향을 감지할수 있음. (대신 더 나누는건 분류기가 나와야 함.
+        * y는 깜빡임인지는 알수 있음. 상하 움직임은 분류기가 나와야 함.
+        *
+        * */
+        if(Math.abs(x) > 0.35 && !eyeHorizontalMovementDetector) {
+            eyeHorizontalMovementDetector = true;
+            if(x < 0) direction = "LEFT";
+            else if(x > 0) direction = "RIGHT";
+            x_prevTime = System.currentTimeMillis();
+        }
+        if(eyeBlinkDetector) {
+            long x_currentTime = System.currentTimeMillis();
+            if (x_currentTime - y_prevTime > 1500) {
+                //단순한 타임아웃
+                eyeHorizontalMovementDetector = false;
+            }
+        }
+
+        if (y > 0.5 && !eyeBlinkDetector) {
+            eyeBlinkDetector = true;
+            y_prevTime = System.currentTimeMillis();
+        }
+        if (eyeBlinkDetector) {
+            long y_currentTime = System.currentTimeMillis();
+            if (y_currentTime - y_prevTime > 500) {
+                if (y > 0.5) {
+                    direction = "vertical movement"; //should be classified
+                }
+                else {
+                    direction = "blink";
+                }
+                eyeBlinkDetector = false;
+            }
+        }
+
+
 
         if (direction != null && eogEventListener != null) {
             eogEventListener.onEyeMovement(direction);
