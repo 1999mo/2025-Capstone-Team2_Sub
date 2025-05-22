@@ -67,14 +67,14 @@ public class EOGManager {
         String direction = null;
 
         /*
-        *
-        * x는 액션이 발생하는 순간 방향을 감지할수 있음. (대신 더 나누는건 분류기가 나와야 함.
-        * y는 깜빡임인지는 알수 있음. 상하 움직임은 분류기가 나와야 함.
-        *1이 취소 2가 오른쪽 3이 왼쪽
-        */
+         *
+         * x는 액션이 발생하는 순간 방향을 감지할수 있음. (대신 더 나누는건 분류기가 나와야 함.
+         * y는 깜빡임인지는 알수 있음. 상하 움직임은 분류기가 나와야 함.
+         *1이 취소 2가 오른쪽 3이 왼쪽
+         */
         long currTime = System.currentTimeMillis();
         if( currTime - selectedTime > 1500) {
-            if (Math.abs(x) > 0.5 && !eyeHorizontalMovementDetector) {
+            if (Math.abs(x) > 1 && !eyeHorizontalMovementDetector) {
                 eyeHorizontalMovementDetector = true;
                 selector = true;
                 direction = x < 0 ? "3" : "2";
@@ -87,12 +87,11 @@ public class EOGManager {
                     eyeHorizontalMovementDetector = false;
                 }
             }
-            if (selector) {
-                if (Math.abs(x) > 0.5) {
+            if (selector && !eyeHorizontalMovementDetector) {
+                if (Math.abs(x) > 1) {
                     //취소됨
                     direction = "1";
                     selector = false;
-                    eyeHorizontalMovementDetector = false;
                 }
                 long selector_time = System.currentTimeMillis();
                 if (selector_time - x_prevTime > 3000) {
