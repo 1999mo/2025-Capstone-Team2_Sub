@@ -1,6 +1,8 @@
 package com.example.eogmodule;
 
 import android.content.Context;
+import android.widget.Toast;
+
 import java.util.UUID;
 
 public class EOGManager {
@@ -8,24 +10,20 @@ public class EOGManager {
     private BluetoothHelper bluetoothHelper;
     private Context context;
     private EOGEventListener eogEventListener;
-    private HorizontalListener horizontalListener;
-    private VerticalListener verticalListener;
-    private SectionListener sectionListener;
+    private static long y_prevTime = 0;
+    private static long x_prevTime = 0;
+    private static boolean eyeBlinkDetector = false;
+    private static boolean eyeHorizontalMovementDetector = false;
+    private static boolean selector = false;
+    private static long selectedTime = 0;
+    private static String prevDirection = null;
+
+
+
 
     public interface EOGEventListener {
+        void onEyeMovement(String direction);
         void onRawData(String rawData);
-    }
-
-    public interface HorizontalListener {
-        void onHorizontal(String direction); // "LEFT" or "RIGHT"
-    }
-
-    public interface VerticalListener {
-        void onVertical(String direction);   // "UP" or "DOWN"
-    }
-
-    public interface SectionListener {
-        void onSection(int section);         // 1 ~ 8
     }
 
     public EOGManager(Context context) {
@@ -36,7 +34,8 @@ public class EOGManager {
             public void onConnected() {}
 
             @Override
-            public void onConnectionFailed(String reason) {}
+            public void onConnectionFailed(String reason) {
+            }
 
             @Override
             public void onDataReceived(String data) {
@@ -50,18 +49,6 @@ public class EOGManager {
         this.eogEventListener = listener;
     }
 
-    public void setHorizontalListener(HorizontalListener listener) {
-        this.horizontalListener = listener;
-    }
-
-    public void setVerticalListener(VerticalListener listener) {
-        this.verticalListener = listener;
-    }
-
-    public void setSectionListener(SectionListener listener) {
-        this.sectionListener = listener;
-    }
-
     public void connect(String deviceName, UUID uuid) {
         bluetoothHelper.connect(deviceName, uuid);
     }
@@ -71,55 +58,82 @@ public class EOGManager {
     }
 
     private void processSensorData(String data) {
-        String[] parts = data.split(",");
-        float x = Float.parseFloat(parts[0].split(":")[1]);
-        float y = Float.parseFloat(parts[1].split(":")[1]);
+        String[] temp = data.split(",");
+        String[] temp2 = temp[0].split(":");
+        float x = Float.parseFloat(temp2[1]);
+        temp2 = temp[1].split(":");
+        float y = Float.parseFloat(temp2[1]);
 
-        // x 방향 액션 감지
-        String hor = null;
-        if (x > 200) hor = "LEFT";
-        else if (x < -200) hor = "RIGHT";
+        String direction = null;
 
-        if (hor != null) {
-            if (horizontalListener != null) {
-                horizontalListener.onHorizontal(hor);
+        /*
+        *
+        * x는 액션이 발생하는 순간 방향을 감지할수 있음. (대신 더 나누는건 분류기가 나와야 함.
+        * y는 깜빡임인지는 알수 있음. 상하 움직임은 분류기가 나와야 함.
+        *1이 취소 2가 오른쪽 3이 왼쪽
+        */
+        long currTime = System.currentTimeMillis();
+        if( currTime - selectedTime > 1500) {
+            if (Math.abs(x) > 0.5 && !eyeHorizontalMovementDetector) {
+                eyeHorizontalMovementDetector = true;
+                selector = true;
+                direction = x < 0 ? "3" : "2";
+                prevDirection = direction;
+                x_prevTime = System.currentTimeMillis();
+            }
+            if (eyeHorizontalMovementDetector) { //단순 타임아웃
+                long x_currentTime = System.currentTimeMillis();
+                if (x_currentTime - x_prevTime > 1000) {
+                    eyeHorizontalMovementDetector = false;
+                }
+            }
+            if (selector) {
+                if (Math.abs(x) > 0.5) {
+                    //취소됨
+                    direction = "1";
+                    selector = false;
+                    eyeHorizontalMovementDetector = false;
+                }
+                long selector_time = System.currentTimeMillis();
+                if (selector_time - x_prevTime > 3000) {
+                    //선택됨
+                    selector = false;
+                    eyeHorizontalMovementDetector = false;
+                    selectedTime = System.currentTimeMillis();
+                }
             }
         }
 
-        // y 방향 액션 감지
-        String ver = null;
-        if (y > 200) {
-            ver = "DOWN";
-        } else if (y < -200) {
-            ver = "UP";
+        if (y > 0.7 && !eyeBlinkDetector) {
+            eyeBlinkDetector = true;
+            y_prevTime = System.currentTimeMillis();
         }
-        if (ver != null) {
-            if (verticalListener != null) {
-                verticalListener.onVertical(ver);
+        if (eyeBlinkDetector) {
+            long y_currentTime = System.currentTimeMillis();
+            if (y_currentTime - y_prevTime > 500) {
+                if (y > 0.5) {
+                    direction = "vertical movement"; //should be classified
+                }
+                else {
+                    direction = "blink";
+                }
+                eyeBlinkDetector = false;
             }
         }
 
-        // Section 처리
-        int section = calculateSection(x, y);
-        if (sectionListener != null) {
-            sectionListener.onSection(section);
+
+
+        if (direction != null && eogEventListener != null) {
+            eogEventListener.onEyeMovement(direction);
         }
     }
-
-    private int calculateSection(float x, float y) {
-        // 이곳에서 section을 판단하고 반환
-
-        int sec = 1;
-        return sec;
-    }
-
-
     /*
+        private static final int THRESHOLD = 200;
     private long lastLoggedTime = 0; //
     public void processSensorData(float x, float y) {
         long currentTime = System.currentTimeMillis();
 
-        // 마지막 기록 이후 1500ms가 지났는 지 체크
+        // 마지막 기록 이후 1500ms가 지났는지 체크
         if (currentTime - lastLoggedTime < 1500) {
             // 아직 쿨타임
             return;
