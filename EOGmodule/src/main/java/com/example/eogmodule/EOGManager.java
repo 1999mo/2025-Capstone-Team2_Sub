@@ -14,6 +14,12 @@ public class EOGManager {
     private static long x_prevTime = 0;
     private static boolean eyeBlinkDetector = false;
     private static boolean eyeHorizontalMovementDetector = false;
+    private static boolean selector = false;
+    private static long selectedTime = 0;
+    private static String prevDirection = null;
+
+
+
 
     public interface EOGEventListener {
         void onEyeMovement(String direction);
@@ -61,21 +67,39 @@ public class EOGManager {
         String direction = null;
 
         /*
-        *
-        * x는 액션이 발생하는 순간 방향을 감지할수 있음. (대신 더 나누는건 분류기가 나와야 함.
-        * y는 깜빡임인지는 알수 있음. 상하 움직임은 분류기가 나와야 함.
-        *
-        * */
-        if(Math.abs(x) > 0.35 && !eyeHorizontalMovementDetector) {
-            eyeHorizontalMovementDetector = true;
-            direction = x < 0 ? "LEFT" : "RIGHT";
-            x_prevTime = System.currentTimeMillis();
-        }
-        if(eyeHorizontalMovementDetector) {
-            long x_currentTime = System.currentTimeMillis();
-            if (x_currentTime - x_prevTime > 1500) {
-                //단순한 타임아웃
-                eyeHorizontalMovementDetector = false;
+         *
+         * x는 액션이 발생하는 순간 방향을 감지할수 있음. (대신 더 나누는건 분류기가 나와야 함.
+         * y는 깜빡임인지는 알수 있음. 상하 움직임은 분류기가 나와야 함.
+         *1이 취소 2가 오른쪽 3이 왼쪽
+         */
+        long currTime = System.currentTimeMillis();
+        if( currTime - selectedTime > 1500) {
+            if (Math.abs(x) > 1 && !eyeHorizontalMovementDetector) {
+                eyeHorizontalMovementDetector = true;
+                selector = true;
+                direction = x < 0 ? "3" : "2";
+                prevDirection = direction;
+                x_prevTime = System.currentTimeMillis();
+            }
+            if (eyeHorizontalMovementDetector) { //단순 타임아웃
+                long x_currentTime = System.currentTimeMillis();
+                if (x_currentTime - x_prevTime > 1000) {
+                    eyeHorizontalMovementDetector = false;
+                }
+            }
+            if (selector && !eyeHorizontalMovementDetector) {
+                if (Math.abs(x) > 1) {
+                    //취소됨
+                    direction = "1";
+                    selector = false;
+                }
+                long selector_time = System.currentTimeMillis();
+                if (selector_time - x_prevTime > 3000) {
+                    //선택됨
+                    selector = false;
+                    eyeHorizontalMovementDetector = false;
+                    selectedTime = System.currentTimeMillis();
+                }
             }
         }
 
