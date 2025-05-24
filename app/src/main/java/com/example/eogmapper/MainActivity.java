@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -26,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+
+import javax.microedition.khronos.opengles.GL;
 
 
 public class MainActivity extends AppCompatActivity  {
@@ -98,6 +101,18 @@ public class MainActivity extends AppCompatActivity  {
         // 데이터 수집 시작 버튼
         Button dataCollectBtn = findViewById(R.id.data_collection_button);
         dataCollectBtn.setOnClickListener(v -> {
+
+            GLSurfaceView glSurfaceView = new GLSurfaceView(this);
+            glSurfaceView.setEGLContextClientVersion(2);
+            glSurfaceView.setRenderer(new Renderer(eogManager));
+            glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            setContentView(glSurfaceView);
+
+            handler.postDelayed(this::startSequence, 3000);
+
+            /*
             // layout 전환
             findViewById(R.id.layout_normal).setVisibility(View.GONE);
             findViewById(R.id.layout_datacollect).setVisibility(View.VISIBLE);
@@ -108,6 +123,7 @@ public class MainActivity extends AppCompatActivity  {
 
             // 3초 뒤 시작
             handler.postDelayed(this::startSequence, 3000);
+            */
         });
     }
 
