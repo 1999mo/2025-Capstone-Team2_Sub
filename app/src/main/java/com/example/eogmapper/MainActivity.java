@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity  {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             setContentView(glSurfaceView);
 
-            handler.postDelayed(this::startSequence, 3000);
+            //handler.postDelayed(this::startSequence, 3000);
 
             /*
             // layout 전환
