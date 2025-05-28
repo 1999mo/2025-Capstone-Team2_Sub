@@ -53,94 +53,180 @@
     </LinearLayout>
 
     <!-- 데이터 수집 모드 레이아웃 (초기에는 숨김) -->
-    <GridLayout
+    <LinearLayout
         android:id="@+id/layout_datacollect"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:rowCount="2"
-        android:columnCount="4"
-        android:useDefaultMargins="true"
-        android:visibility="gone">
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:padding="8dp">
 
-        <View
-            android:id="@+id/section1"
+        <!-- 왼쪽 3×3 그리드 -->
+        <GridLayout
+            android:id="@+id/grid_left"
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_row="0"
-            android:layout_column="0"
-            android:layout_rowWeight="1"
-            android:layout_columnWeight="1"
-            android:background="#CCCCCC" />
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:rowCount="3"
+            android:columnCount="3"
+            android:useDefaultMargins="true">
 
-        <View
-            android:id="@+id/section2"
+            <View
+                android:id="@+id/section_left_1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_left_2"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_left_3"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_left_4"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_left_5"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_left_6"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_left_7"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_left_8"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_left_9"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+        </GridLayout>
+
+        <!-- 오른쪽 3×3 그리드 -->
+        <GridLayout
+            android:id="@+id/grid_right"
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_row="0"
-            android:layout_column="1"
-            android:layout_rowWeight="1"
-            android:layout_columnWeight="1"
-            android:background="#CCCCCC" />
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:rowCount="3"
+            android:columnCount="3"
+            android:useDefaultMargins="true">
 
-        <View
-            android:id="@+id/section3"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_row="0"
-            android:layout_column="2"
-            android:layout_rowWeight="1"
-            android:layout_columnWeight="1"
-            android:background="#CCCCCC" />
+            <View
+                android:id="@+id/section_right_1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
 
-        <View
-            android:id="@+id/section4"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_row="0"
-            android:layout_column="3"
-            android:layout_rowWeight="1"
-            android:layout_columnWeight="1"
-            android:background="#CCCCCC" />
+            <View
+                android:id="@+id/section_right_2"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
 
-        <View
-            android:id="@+id/section5"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_row="1"
-            android:layout_column="0"
-            android:layout_rowWeight="1"
-            android:layout_columnWeight="1"
-            android:background="#CCCCCC" />
+            <View
+                android:id="@+id/section_right_3"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
 
-        <View
-            android:id="@+id/section6"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_row="1"
-            android:layout_column="1"
-            android:layout_rowWeight="1"
-            android:layout_columnWeight="1"
-            android:background="#CCCCCC" />
+            <View
+                android:id="@+id/section_right_4"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
 
-        <View
-            android:id="@+id/section7"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_row="1"
-            android:layout_column="2"
-            android:layout_rowWeight="1"
-            android:layout_columnWeight="1"
-            android:background="#CCCCCC" />
+            <View
+                android:id="@+id/section_right_5"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
 
-        <View
-            android:id="@+id/section8"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_row="1"
-            android:layout_column="3"
-            android:layout_rowWeight="1"
-            android:layout_columnWeight="1"
-            android:background="#CCCCCC" />
+            <View
+                android:id="@+id/section_right_6"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
 
-    </GridLayout>
+            <View
+                android:id="@+id/section_right_7"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_right_8"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+
+            <View
+                android:id="@+id/section_right_9"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:background="#FFCCCCCC" />
+        </GridLayout>
+
+    </LinearLayout>
+
 </FrameLayout>

@@ -5,23 +5,18 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import com.example.eogmodule.EOGManager;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -31,8 +26,8 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity  {
     private static final String DEVICE_NAME = "EOG_DEVICE";
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // UUID로 교체
-
-    private static final int REQUEST_CODE_PERMISSIONS = 10;
+    private static final int REQUEST_CODE_PERMISSIONS = 20;
+    private static final int CENTER_INDEX = 4;
 
     private EOGManager eogManager;
     private Handler handler = new Handler();
@@ -41,34 +36,28 @@ public class MainActivity extends AppCompatActivity  {
     private BluetoothManager bluetoothManager;
     private BluetoothAdapter bluetoothAdapter;
 
-    private boolean isDataMode = false;
-
-    private List<View> sections = new ArrayList<>();
+    private List<View> leftSections = new ArrayList<>();
+    private List<View> rightSections = new ArrayList<>();
     private int prevIndex = -1;
     private int iteration = 0;
-    private static final int TOTAL_ITER = 20;
-    private View layoutNormal, layoutDataCollect;
+    private static final int TOTAL_ITER = 10;
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // 화면 회전으로 인한 재생성 방지.
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // NEW 모듈 버전
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        layoutNormal      = findViewById(R.id.layout_normal);
-        layoutDataCollect = findViewById(R.id.layout_datacollect);
-        Button btnConnect = findViewById(R.id.buttonConnect);
-        Button btnData    = findViewById(R.id.data_collection_button);
-
-        // 로그 기록용 권한 요청
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    REQUEST_CODE_PERMISSIONS);
+        // 액션바(타이틀바) 숨기기
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
         }
+        setContentView(R.layout.activity_main);
 
         // Bluetooth 권한 체크 및 요청
         checkBluetoothPermissions();
@@ -93,7 +82,6 @@ public class MainActivity extends AppCompatActivity  {
             checkBluetoothPermissions();
             eogManager.connect(DEVICE_NAME, MY_UUID);
         });
-
 
         // 데이터 수집 시작 버튼
         Button dataCollectBtn = findViewById(R.id.data_collection_button);
@@ -122,42 +110,53 @@ public class MainActivity extends AppCompatActivity  {
             // 종료
             return;
         }
-        // 랜덤 섹션 선택 (이전과 다르게)
+        // 0~8 사이 인덱스 랜덤 선택 (이전과 다르게)
         int idx;
-        do {
-            idx = random.nextInt(sections.size());
-        } while (idx == prevIndex);
+        if (iteration % 2 == 0) {
+            // 짝수 번째(iteration 0,2,4…)에는 항상 가운데
+            idx = CENTER_INDEX;
+        } else {
+            // 홀수 번째(iteration 1,3,5…)에는 외곽 중 랜덤 (이전과 중복 방지)
+            do {
+                idx = random.nextInt(leftSections.size());
+            } while (idx == prevIndex || idx == CENTER_INDEX);
+        }
         prevIndex = idx;
 
-        View sec = sections.get(idx);
+        View leftSec  = leftSections.get(idx);
+        View rightSec = rightSections.get(idx);
 
-        // 색 변경
+        // 기존/하이라이트 색
         int originalColor = 0xFFCCCCCC;
-        int highlightColor = 0xffb5d692;
-        sec.setBackgroundColor(highlightColor);
+        int highlightColor = 0xFFB5D692;
 
-        writeLog("SECTION " + (idx+1) + "\n");
+        // 좌우 동시에 변경
+        leftSec.setBackgroundColor(highlightColor);
+        rightSec.setBackgroundColor(highlightColor);
 
-        // 1초 후 색 복원 & 다음 반복
+        eogManager.setCustomLabel(idx);
+
+        // 1.5초 후 원상복귀 및 다음 반복
         handler.postDelayed(() -> {
-            sec.setBackgroundColor(originalColor);
+            leftSec.setBackgroundColor(originalColor);
+            rightSec.setBackgroundColor(originalColor);
             iteration++;
             changeSection();
         }, 1500);
     }
 
     private void initSections() {
-        sections.clear();
-        sections.add(findViewById(R.id.section1));
-        sections.add(findViewById(R.id.section2));
-        sections.add(findViewById(R.id.section3));
-        sections.add(findViewById(R.id.section4));
-        sections.add(findViewById(R.id.section5));
-        sections.add(findViewById(R.id.section6));
-        sections.add(findViewById(R.id.section7));
-        sections.add(findViewById(R.id.section8));
+        leftSections.clear();
+        rightSections.clear();
 
-        eogManager.setEOGEventListener(rawData -> writeLog(rawData + "\n"));
+        // IDs가 section_left_1 ~ section_left_9, section_right_1 ~ section_right_9 로 정의되어 있어야 함
+        for (int i = 1; i <= 9; i++) {
+            int leftId  = getResources().getIdentifier("section_left_"  + i, "id", getPackageName());
+            int rightId = getResources().getIdentifier("section_right_" + i, "id", getPackageName());
+            leftSections.add(findViewById(leftId));
+            rightSections.add(findViewById(rightId));
+        }
+
     }
 
     private void checkBluetoothPermissions() {
@@ -172,22 +171,6 @@ public class MainActivity extends AppCompatActivity  {
         }
         if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_DENIED) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE_PERMISSIONS);
-        }
-    }
-
-    // 로그 파일에 문자열을 추가
-    private void writeLog(String log) {
-        try {
-            // Downloads 폴더 경로
-            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            File logFile = new File(downloadsDir, "EOG_log.txt");
-
-            FileWriter writer = new FileWriter(logFile, true); // true로 하면 append(추가) 모드
-            writer.append(log);
-            writer.flush();
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
