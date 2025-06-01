@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.eogmodule.EOGManager;
 
+import java.io.DataInput;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -38,6 +39,7 @@ public class MainActivity extends AppCompatActivity  {
     private BluetoothManager bluetoothManager;
     private BluetoothAdapter bluetoothAdapter;
 
+    private TextView textDirectionResult;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,12 +64,24 @@ public class MainActivity extends AppCompatActivity  {
             return;
         }
 
+        textDirectionResult = findViewById(R.id.textDirectionResult);
+
         // EOGManager 초기화
         eogManager = new EOGManager(this);
         eogManager.setEOGEventListener(new EOGManager.EOGEventListener() {
             @Override
-            public void onEyeMovement(String direction) {
-                String message = "눈 움직임 감지됨: " + direction;
+            public void onEyeMovement(EOGManager.Direction direction) {
+                String dirText;
+                switch (direction) {
+                    case LEFT:  dirText = "왼쪽";   break;
+                    case RIGHT: dirText = "오른쪽"; break;
+                    case UP:    dirText = "위";     break;
+                    case DOWN:  dirText = "아래";   break;
+                    default:    dirText = "알 수 없음"; break;
+                }
+
+                textDirectionResult.setText(dirText);
+                String message = "눈 움직임 감지: " + dirText;
                 textViewStatus.setText(message);
                 Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
             }
@@ -86,9 +100,6 @@ public class MainActivity extends AppCompatActivity  {
         });
 
         // 방향 측정
-        TextView directionText = findViewById(R.id.direction_text);
-        Button directionCheckStartButton = findViewById(R.id.direction_check_start_button);
-        setupDirectionCheck(directionText, directionCheckStartButton);
     }
 
     private void checkBluetoothPermissions() {
@@ -103,66 +114,6 @@ public class MainActivity extends AppCompatActivity  {
         }
         if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_DENIED) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE_PERMISSIONS);
-        }
-    }
-
-    private void setupDirectionCheck(TextView directionText, Button directionCheckStartButton) {
-
-        final int IDLE_TIME = 2000;     // . 상태로 대기 시간
-        final int WAIT_TIME = 2000;     // 방향 보여 주고 유지 시간
-        final int MEASURE_COUNT = 10;   // 측정 횟수
-
-        directionCheckStartButton.setOnClickListener(v -> {
-            Thread directionThread = new Thread(() -> {
-                for (int i = 0; i < MEASURE_COUNT; i++) {
-                    mHandler.post(() -> directionText.setText("방향\n."));
-
-                    try { Thread.sleep(IDLE_TIME); } catch (Exception ignored) {}
-
-                    mHandler.post(() -> {
-                        String direction;
-                        if (Math.random() > 0.5) {
-                            direction = "RIGHT";
-                            directionText.setText("방향\n→");
-                        } else {
-                            direction = "LEFT";
-                            directionText.setText("방향\n←");
-                        }
-
-                        // 로그 작성
-                        // 파일명 direction_log.txt
-                        // Download 폴더에 저장됨
-                        long now = System.currentTimeMillis();
-                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("mm:ss:SSS");
-                        String currentTime = sdf.format(new java.util.Date(now));
-                        String logLine = "[" + currentTime + "] " + direction + "\n";
-
-                        writeLog(logLine);
-                    });
-
-                    try { Thread.sleep(WAIT_TIME); } catch (Exception ignored) {}
-                }
-
-                mHandler.post(() -> directionText.setText("종료"));
-            });
-
-            directionThread.start();
-        });
-    }
-
-    // 로그 파일에 문자열을 추가
-    private void writeLog(String log) {
-        try {
-            // Downloads 폴더 경로
-            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            File logFile = new File(downloadsDir, "direction_log.txt");
-
-            FileWriter writer = new FileWriter(logFile, true); // true로 하면 append(추가) 모드
-            writer.append(log);
-            writer.flush();
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 

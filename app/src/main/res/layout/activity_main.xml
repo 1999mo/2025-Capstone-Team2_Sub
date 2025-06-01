@@ -19,20 +19,17 @@
         android:text="EOG 장치 연결하기"
         android:layout_marginTop="20dp"/>
 
-    <Button
-        android:id="@+id/direction_check_start_button"
+    <TextView
+        android:id="@+id/textDirection"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="방향 측정 시작"
-        android:layout_marginTop="20dp"
-        android:layout_gravity="center" />
+        android:text="움직임 판단 결과"
+        android:textSize="20sp" />
 
     <TextView
-        android:id="@+id/direction_text"
+        android:id="@+id/textDirectionResult"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="방향 측정 대기 중"
-        android:textSize="24sp"
-        android:layout_centerInParent="true"/>
-
+        android:text=""
+        android:textSize="20sp" />
 </LinearLayout>
