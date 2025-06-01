@@ -3,6 +3,7 @@ package com.example.eogmodule;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,7 +20,7 @@ import org.pytorch.PyTorchAndroid;
 import org.pytorch.Tensor;
 
 public class EOGManager {
-
+    private static final String TAG = "EOGManager";
     private BluetoothHelper bluetoothHelper;
     private Context context;
     private EOGEventListener eogEventListener;
@@ -82,30 +83,79 @@ public class EOGManager {
 
         // ANN classifier initialize
         try {
-            // assets/model_traced.pt를 내부 저장소로 복사
+            // assets/model_traced_84.pt를 내부 저장소로 복사
             String modelFilePath = copyAssetToDisk(context.getAssets(), "model_traced_84.pt");
             module = Module.load(modelFilePath);
-        } catch (IOException ignored) {
+            Log.d(TAG, "PyTorch module loaded successfully from: " + modelFilePath);
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to copy model asset to disk", e);
+            module = null;
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load PyTorch module", e);
+            module = null;
         }
+
+        testInferenceWithDummyData();
+    }
+
+    public void testInferenceWithDummyData() {
+        Log.d("EOGManagerTest", "Test model start");
+        // (1) 모델이 기대하는 차원 14개짜리 float[] 생성
+        float[] dummyInput = new float[14];
+        for (int i = 0; i < dummyInput.length; i++) {
+            dummyInput[i] = 0.1f * i;  // 예시: 0.0, 0.1, 0.2, … , 1.3
+        }
+
+        // (2) runInference 호출
+        int predictedLabel = runInference(dummyInput);
+
+        // (3) 결과를 Logcat에 출력
+        Log.d("EOGManagerTest", "Dummy input inference result = " + predictedLabel);
     }
 
     /**
      * assets 내부의 모델 파일을 앱 내부 저장소로 복사
      */
     private String copyAssetToDisk(AssetManager assetManager, String assetName) throws IOException {
+        // assets 폴더 리스트 출력 (디버깅용)
+        try {
+            String[] assetList = assetManager.list("");
+            Log.d(TAG, "AssetManager.list(\"\") => count=" + assetList.length);
+            for (String s : assetList) {
+                Log.d(TAG, "  - asset: " + s);
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to list assets", e);
+        }
+
         File cacheFile = new File(context.getFilesDir(), assetName);
         if (!cacheFile.exists()) {
-            AssetFileDescriptor afd = assetManager.openFd(assetName);
-            InputStream inputStream = afd.createInputStream();
-            FileOutputStream outputStream = new FileOutputStream(cacheFile);
-            byte[] buffer = new byte[8192];
-            int readBytes;
-            while ((readBytes = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, readBytes);
+            InputStream inputStream = null;
+            FileOutputStream outputStream = null;
+            try {
+                // *** openFd 대신 open 사용 ***
+                inputStream = assetManager.open(assetName);
+                outputStream = new FileOutputStream(cacheFile);
+                byte[] buffer = new byte[8192];
+                int readBytes;
+                while ((readBytes = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, readBytes);
+                }
+                outputStream.flush();
+                Log.d(TAG, "copyAssetToDisk: asset 복사 완료 -> " + cacheFile.getAbsolutePath());
+            } catch (IOException openEx) {
+                Log.e(TAG, "copyAssetToDisk: 파일을 열 수 없습니다. assetName=" + assetName, openEx);
+                throw openEx;
+            } finally {
+                if (inputStream != null) {
+                    try { inputStream.close(); } catch (IOException ignored) {}
+                }
+                if (outputStream != null) {
+                    try { outputStream.close(); } catch (IOException ignored) {}
+                }
             }
-            inputStream.close();
-            outputStream.flush();
-            outputStream.close();
+        } else {
+            Log.d(TAG, "copyAssetToDisk: 이미 복사되어 있음 -> " + cacheFile.getAbsolutePath());
         }
         return cacheFile.getAbsolutePath();
     }
