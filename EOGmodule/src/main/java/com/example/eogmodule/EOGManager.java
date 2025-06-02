@@ -199,6 +199,11 @@ public class EOGManager {
         float x = Float.parseFloat(temp2[1]);
         temp2 = temp[1].split(":");
         float y = Float.parseFloat(temp2[1]);
+        temp2 = temp[2].split(":");
+        float matched_x = Float.parseFloat(temp2[1]);
+        temp2 = temp[3].split(":");
+        float blink = Float.parseFloat(temp2[1]);
+
 
         long currentTime = System.currentTimeMillis();
 
@@ -211,20 +216,23 @@ public class EOGManager {
             buffer.removeFirst();
         }
 
-        // 마지막 추론 시점으로부터 0.2초(200ms) 이상 지났으면 추론 실행
-        if (currentTime - lastInferenceTime >= 200) {
-            // lastInferenceTime을 현재 시점 +1초로 설정
-            // 1초 동안은 신호 판단 x
-            lastInferenceTime = currentTime + 10000;
+        //X신호가 발생했거나 눈을 깜빡였을때(눈 움직임이 발생했을때 추론 실행)
+        if(Math.abs(matched_x) > 0.7 || Math.abs(blink) > 0.7) {
+            // 마지막 추론 시점으로부터 0.2초(200ms) 이상 지났으면 추론 실행
+            if (currentTime - lastInferenceTime >= 200) {
+                lastInferenceTime = currentTime + 1000;
+                // lastInferenceTime을 현재 시점 +1초로 설정
+                // 1초 동안은 신호 판단 x
 
-            // 버퍼 데이터를 가공하여 모델 입력용 배열 생성
-            float[] inputData = preprocessBufferData();
+                // 버퍼 데이터를 가공하여 모델 입력용 배열 생성
+                float[] inputData = preprocessBufferData();
 
-            if (inputData != null && inputData.length > 0) {
-                int resultIdx = runInference(inputData);
-                Direction direction = Direction.values()[resultIdx];
-                if (eogEventListener != null) {
-                    eogEventListener.onEyeMovement(direction);
+                if (inputData != null && inputData.length > 0) {
+                    int resultIdx = runInference(inputData);
+                    Direction direction = Direction.values()[resultIdx];
+                    if (eogEventListener != null) {
+                        eogEventListener.onEyeMovement(direction);
+                    }
                 }
             }
         }
