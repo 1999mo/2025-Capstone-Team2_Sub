@@ -233,7 +233,7 @@ public class EOGManager {
         //타이머가 끝나면 추론 시작.
         if(MovementDetection) {
             long movementCurrentTime = System.currentTimeMillis();
-            if(movementCurrentTime - MovementDetectedTime > 300) {
+            if(movementCurrentTime - MovementDetectedTime > 950) {
                 InferenceFlag = true;
             }
         }
