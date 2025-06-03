@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -180,8 +181,11 @@ public class EOGManager {
             if (scores[i] > maxScore) {
                 maxScore = scores[i];
                 maxIdx = i;
+
             }
         }
+        //Toast.makeText(context.getApplicationContext(), Float.toString(scores[maxIdx]), Toast.LENGTH_SHORT).show();
+
         return maxIdx;
     }
 
@@ -206,7 +210,7 @@ public class EOGManager {
         temp2 = temp[2].split(":");
         float matched_x = Float.parseFloat(temp2[1]);
         temp2 = temp[3].split(":");
-        float blink = Float.parseFloat(temp2[1]);
+        float matched_y = Float.parseFloat(temp2[1]);
 
 
         long currentTime = System.currentTimeMillis();
@@ -221,22 +225,23 @@ public class EOGManager {
         }
 
         //움직임을 감지하면 플래그 활성화. 및 타이머 활성화
-        if(!MovementDetection && Math.abs(matched_x) > 0.7 || Math.abs(blink) > 0.7) {
+        if(!MovementDetection && Math.abs(matched_x) > 0.9 || Math.abs(matched_y) > 0.9) {
             MovementDetection = true;
             MovementDetectedTime = System.currentTimeMillis();
         }
-        //움직임이 감지되면 1.2초간 타이머를 돌려 버퍼에 데이터를 쌓는 목적. (사람의 반응속도가 0.3초라고 가정)
+        //움직임이 감지되면 ?ms초간 타이머를 돌려 버퍼에 데이터를 쌓는 목적.
         //타이머가 끝나면 추론 시작.
         if(MovementDetection) {
             long movementCurrentTime = System.currentTimeMillis();
-            if(movementCurrentTime - MovementDetectedTime > 700) {
+            if(movementCurrentTime - MovementDetectedTime > 300) {
                 InferenceFlag = true;
             }
         }
+
         // 마지막 추론 시점으로부터 0.2초(200ms) 이상 지났으면 추론 실행
         if(InferenceFlag) {
-            if (currentTime - lastInferenceTime >= 200) {
-                lastInferenceTime = currentTime + 1000;
+//            if (currentTime - lastInferenceTime >= 200) {
+//                lastInferenceTime = currentTime + 1000;
                 // lastInferenceTime을 현재 시점 +1초로 설정
                 // 1초 동안은 신호 판단 x
                 // 버퍼 데이터를 가공하여 모델 입력용 배열 생성
@@ -248,7 +253,7 @@ public class EOGManager {
                     if (eogEventListener != null) {
                         eogEventListener.onEyeMovement(direction);
                     }
-                }
+//                }
                 InferenceFlag = false; //추론 끝
                 MovementDetection = false; // 감지 끝.
             }
@@ -292,7 +297,7 @@ public class EOGManager {
             if (yDet[i] < yMinRaw) yMinRaw = yDet[i];
         }
 
-        // 3) x,y 의 min/max 절대값 중 하나라도 400 초과하지 않으면 null 반환
+         //3) x,y 의 min/max 절대값 중 하나라도 400 초과하지 않으면 null 반환
         if (Math.abs(xMaxRaw) <= 400.0f &&
                 Math.abs(xMinRaw) <= 400.0f &&
                 Math.abs(yMaxRaw) <= 400.0f &&
