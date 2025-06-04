@@ -25,6 +25,9 @@ public class EOGManager {
     private Context context;
     private EOGEventListener eogEventListener;
     private Module module;
+    private static Boolean InferenceFlag = false;
+    private static Boolean MovementDetection = false;
+    private static long MovementDetectedTime = 0;
 
 
     // 버퍼에 저장할 샘플을 나타내는 내부 클래스
@@ -270,6 +273,11 @@ public class EOGManager {
         float x = Float.parseFloat(temp2[1]);
         temp2 = temp[1].split(":");
         float y = Float.parseFloat(temp2[1]);
+        temp2 = temp[2].split(":");
+        float matched_x = Float.parseFloat(temp2[1]);
+        temp2 = temp[3].split(":");
+        float matched_y = Float.parseFloat(temp2[1]);
+
 
         long currentTime = System.currentTimeMillis();
 
@@ -282,12 +290,26 @@ public class EOGManager {
             buffer.removeFirst();
         }
 
+        //움직임을 감지하면 플래그 활성화. 및 타이머 활성화
+        if(!MovementDetection && Math.abs(matched_x) > 0.9 || Math.abs(matched_y) > 0.9) {
+            MovementDetection = true;
+            MovementDetectedTime = System.currentTimeMillis();
+        }
+        //움직임이 감지되면 ?ms초간 타이머를 돌려 버퍼에 데이터를 쌓는 목적.
+        //타이머가 끝나면 추론 시작.
+        if(MovementDetection) {
+            long movementCurrentTime = System.currentTimeMillis();
+            if(movementCurrentTime - MovementDetectedTime > 950) {
+                InferenceFlag = true;
+            }
+        }
+
         // 마지막 추론 시점으로부터 0.2초(200ms) 이상 지났으면 추론 실행
-        if (currentTime - lastInferenceTime >= 200) {
+        if(InferenceFlag) {
+//            if (currentTime - lastInferenceTime >= 200) {
+//                lastInferenceTime = currentTime + 1000;
             // lastInferenceTime을 현재 시점 +1초로 설정
             // 1초 동안은 신호 판단 x
-            lastInferenceTime = currentTime + 10000;
-
             // 버퍼 데이터를 가공하여 모델 입력용 배열 생성
             float[] inputData = preprocessBufferData();
 
@@ -297,6 +319,9 @@ public class EOGManager {
                 if (eogEventListener != null) {
                     eogEventListener.onEyeMovement(direction);
                 }
+//                }
+                InferenceFlag = false; //추론 끝
+                MovementDetection = false; // 감지 끝.
             }
         }
     }
