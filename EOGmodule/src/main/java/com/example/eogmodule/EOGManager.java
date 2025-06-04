@@ -1,14 +1,15 @@
 package com.example.eogmodule;
 
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
@@ -16,7 +17,6 @@ import java.util.UUID;
 
 import org.pytorch.IValue;
 import org.pytorch.Module;
-import org.pytorch.PyTorchAndroid;
 import org.pytorch.Tensor;
 
 public class EOGManager {
@@ -46,17 +46,17 @@ public class EOGManager {
     // 마지막으로 추론을 수행한 시각 (밀리초)
     private long lastInferenceTime = 0;
 
-    public enum Direction {
-        LEFT_UP,
-        UP,
-        RIGHT_UP,
-        LEFT,
-        RIGHT,
-        LEFT_DOWN,
-        DOWN,
-        RIGHT_DOWN,
-        BLINK
-    }
+    public enum Direction { LEFT_UP, UP, RIGHT_UP, LEFT, RIGHT, LEFT_DOWN, DOWN, RIGHT_DOWN, BLINK }
+
+    private static final float[] FEATURE_MEANS = new float[]{
+            322.158780f, -325.076977f, 126.873161f, 0.043643f, 1.862295f, 3.890496f,
+            364.921066f, -385.631221f, 159.955604f, -0.160811f, 0.760025f, 22.196281f
+    };
+
+    private static final float[] FEATURE_STDS = new float[]{
+            172.854051f, 195.419945f, 58.375951f, 1.274993f, 1.365249f, 13.432352f,
+            280.790807f, 255.677729f, 123.099283f, 0.927015f, 3.265303f, 37.137848f
+    };
 
     public interface EOGEventListener {
         void onEyeMovement(Direction direction);
@@ -84,7 +84,7 @@ public class EOGManager {
         // ANN classifier initialize
         try {
             // assets/model_traced_84.pt를 내부 저장소로 복사
-            String modelFilePath = copyAssetToDisk(context.getAssets(), "model_traced_84.pt");
+            String modelFilePath = copyAssetToDisk(context.getAssets(), "model_traced_84z.pt");
             module = Module.load(modelFilePath);
             Log.d(TAG, "PyTorch module loaded successfully from: " + modelFilePath);
         } catch (IOException e) {
@@ -99,18 +99,85 @@ public class EOGManager {
     }
 
     public void testInferenceWithDummyData() {
-        Log.d("EOGManagerTest", "Test model start");
-        // (1) 모델이 기대하는 차원 14개짜리 float[] 생성
-        float[] dummyInput = new float[14];
-        for (int i = 0; i < dummyInput.length; i++) {
-            dummyInput[i] = 0.1f * i;  // 예시: 0.0, 0.1, 0.2, … , 1.3
+        Log.d("EOGManagerTest", "Model test start");
+
+        String assetFileName = "test_data.txt";
+        try {
+            // 2) AssetManager를 통해 텍스트 파일 열기
+            InputStream is = context.getAssets().open(assetFileName);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+
+            // 3) 기존 buffer 초기화
+            buffer.clear();
+
+            String line;
+            long baseTime = System.currentTimeMillis();
+            int idx = 0;
+
+            // 4) 파일의 모든 줄을 읽어와서 파싱
+            while ((line = reader.readLine()) != null) {
+                // 예시 라인 형식: "[4] [52:53.888] ,X:2399,Y:1514,Z:0"
+                // 쉼표(,)로 split하면 parts[0] = "[4] [52:53.888] ",
+                //                       parts[1] = "X:2399"
+                //                       parts[2] = "Y:1514"
+                //                       parts[3] = "Z:0"
+                String[] parts = line.split(",");
+
+                if (parts.length < 3) {
+                    Log.d("EOGManagerTest", " 테스트 파싱 결과 형식이 올바르지 않습니다.");
+                    continue;
+                }
+
+                // parts[1]에서 X 값을 파싱
+                String xPart = parts[1].trim(); // "X:2399"
+                float x = Float.parseFloat(xPart.split(":")[1]);
+
+                // parts[2]에서 Y 값을 파싱
+                String yPart = parts[2].trim(); // "Y:1514"
+                float y = Float.parseFloat(yPart.split(":")[1]);
+
+                // (Optional) Z 값은 parts[3]에 있지만, 현재 preprocess 단계에서는 사용하지 않으므로 무시해도 됩니다.
+                // String zPart = parts[3].trim(); // "Z:0"
+                // float z = Float.parseFloat(zPart.split(":")[1]);
+
+                // 5) 임시 timestamp 생성 (baseTime + idx). 실제 시간 정보를 쓰고 싶다면
+                //    "[52:53.888]" 형태를 파싱해서 ms 단위로 변환하여 사용할 수 있습니다.
+                long timestamp = baseTime + idx;
+                idx++;
+
+                // 6) Sample 객체로 생성하여 buffer에 추가
+                Sample sample = new Sample(timestamp, x, y);
+                buffer.addLast(sample);
+            }
+
+            reader.close();
+
+            Sample s = buffer.getFirst();
+            Log.d("EOGManagerTest", "Buffer get first");
+            Log.d("EOGManagerTest", "x: " + s.x);
+            Log.d("EOGManagerTest", "y: " + s.y);
+            Log.d("EOGManagerTest", "timestamp: " + s.timestamp);
+
+            // 7) buffer.DATA를 기반으로 preprocessBufferData() 호출하여 14차원 피처 생성
+            float[] inputData = preprocessBufferData();
+
+            Log.d("EOGManagerTest", "Processed Data");
+            if (inputData != null) {
+                for (float item: inputData) {
+                    Log.d("EOGManagerTest", "" + item);
+                }
+            }
+
+            if (inputData.length == 12) {
+                int predictedLabel = runInference(inputData);
+                Log.d("EOGManagerTest", "File-based input inference result = " + predictedLabel);
+            } else {
+                Log.d("EOGManagerTest", "파일 데이터로부터 충분한 피처를 생성하지 못했습니다.");
+            }
+
+        } catch (IOException e) {
+            Log.e("EOGManagerTest", "testInferenceWithDummyData: 파일을 읽는 중 오류 발생", e);
         }
-
-        // (2) runInference 호출
-        int predictedLabel = runInference(dummyInput);
-
-        // (3) 결과를 Logcat에 출력
-        Log.d("EOGManagerTest", "Dummy input inference result = " + predictedLabel);
     }
 
     /**
@@ -172,7 +239,11 @@ public class EOGManager {
         float[] scores = outputTensor.getDataAsFloatArray();
         int maxIdx = 0;
         float maxScore = scores[0];
-        for (int i = 1; i < scores.length; i++) {
+
+        Log.d(TAG, "Inference score");
+        for (int i = 0; i < scores.length; i++) {
+            Log.d(TAG, i + ": " + scores[i]);
+
             if (scores[i] > maxScore) {
                 maxScore = scores[i];
                 maxIdx = i;
@@ -234,6 +305,7 @@ public class EOGManager {
      * 버퍼에 담긴 샘플들을 가공하여 모델이 요구하는 14차원 입력 형태의 float[]를 반환
      * 1) x, y 데이터 각각에 대해 detrend 적용
      * 2) x, y 각각 7개 피쳐 추출: [max, min, mean, std, skewness, kurtosis, dominant frequency]
+     * 3) Python StandardScaler와 동일하게 정규화 적용
      */
     private float[] preprocessBufferData() {
         int N = buffer.size();
@@ -279,10 +351,17 @@ public class EOGManager {
         float[] xFeatures = computeFeatures(xDet);
         float[] yFeatures = computeFeatures(yDet);
 
-        // 14차원 결과 벡터 생성
-        float[] features = new float[14];
-        System.arraycopy(xFeatures, 0, features, 0, 7);
-        System.arraycopy(yFeatures, 0, features, 7, 7);
+        // 5) 14차원 결과 벡터 생성
+        float[] features = new float[12];
+        System.arraycopy(xFeatures, 0, features, 0, 6);
+        System.arraycopy(yFeatures, 0, features, 6, 6);
+
+        // 6) 정규화 (StandardScaler 방식, STD가 0인 경우 0으로 처리)
+        for (int i = 0; i < features.length; i++) {
+            float mean = FEATURE_MEANS[i];
+            float std  = FEATURE_STDS[i];
+            features[i] = (features[i] - mean) / std;
+        }
 
         return features;
     }
@@ -326,7 +405,7 @@ public class EOGManager {
     }
 
     /**
-     * 단일 배열 arr에 대해 7개 피쳐를 계산하여 float[7]로 반환
+     * 단일 배열 arr에 대해 6개 피쳐를 계산하여 float[6]로 반환
      * [max, min, mean, std, skewness, kurtosis, dominant frequency index]
      */
     private float[] computeFeatures(float[] arr) {
@@ -335,18 +414,15 @@ public class EOGManager {
         // 1) max, min
         float maxV = arr[0];
         float minV = arr[0];
-        double sum = 0.0;
         for (int i = 0; i < N; i++) {
             if (arr[i] > maxV) maxV = arr[i];
             if (arr[i] < minV) minV = arr[i];
-            sum += arr[i];
         }
-        double mean = sum / N;
 
         // 2) std
         double sumSq = 0.0;
         for (int i = 0; i < N; i++) {
-            double diff = arr[i] - mean;
+            double diff = arr[i];
             sumSq += diff * diff;
         }
         double variance = sumSq / N;
@@ -357,7 +433,7 @@ public class EOGManager {
         double sumFourth = 0.0;
         if (std > 0.0) {
             for (int i = 0; i < N; i++) {
-                double norm = (arr[i] - mean) / std;
+                double norm = (arr[i]) / std;
                 sumCubed += norm * norm * norm;
                 sumFourth += norm * norm * norm * norm;
             }
@@ -376,7 +452,6 @@ public class EOGManager {
         return new float[]{
                 maxV,
                 minV,
-                (float)mean,
                 (float)std,
                 skewness,
                 kurtosis,
