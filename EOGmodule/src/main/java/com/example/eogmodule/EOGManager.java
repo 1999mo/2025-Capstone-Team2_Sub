@@ -3,6 +3,7 @@ package com.example.eogmodule;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,6 +29,7 @@ public class EOGManager {
     private static Boolean InferenceFlag = false;
     private static Boolean MovementDetection = false;
     private static long MovementDetectedTime = 0;
+    private static Boolean deprecateSecondMovement = false;
 
 
     // 버퍼에 저장할 샘플을 나타내는 내부 클래스
@@ -277,6 +279,9 @@ public class EOGManager {
         float matched_x = Float.parseFloat(temp2[1]);
         temp2 = temp[3].split(":");
         float matched_y = Float.parseFloat(temp2[1]);
+        temp2 = temp[4].split(":");
+        float RESET_SIGNAL = Float.parseFloat(temp2[1]);
+
 
 
         long currentTime = System.currentTimeMillis();
@@ -290,8 +295,13 @@ public class EOGManager {
             buffer.removeFirst();
         }
 
+        if(RESET_SIGNAL == 1) {
+            deprecateSecondMovement = false;
+            Toast.makeText(context.getApplicationContext(), "Reset", Toast.LENGTH_SHORT).show();
+        }
+
         //움직임을 감지하면 플래그 활성화. 및 타이머 활성화
-        if(!MovementDetection && Math.abs(matched_x) > 0.9 || Math.abs(matched_y) > 0.9) {
+        if(!MovementDetection && Math.abs(matched_x) > 0.6 || Math.abs(matched_y) > 0.6) {
             MovementDetection = true;
             MovementDetectedTime = System.currentTimeMillis();
         }
@@ -304,22 +314,31 @@ public class EOGManager {
             }
         }
 
-        // 마지막 추론 시점으로부터 0.2초(200ms) 이상 지났으면 추론 실행
+        // 마지막 추론 시점으로부터 1초(1001ms) 이상 지났으면 추론 실행
         if(InferenceFlag) {
-//            if (currentTime - lastInferenceTime >= 200) {
-//                lastInferenceTime = currentTime + 1000;
+            if (currentTime - lastInferenceTime >= 1) {
+                lastInferenceTime = currentTime + 1000;
             // lastInferenceTime을 현재 시점 +1초로 설정
             // 1초 동안은 신호 판단 x
             // 버퍼 데이터를 가공하여 모델 입력용 배열 생성
             float[] inputData = preprocessBufferData();
 
-            if (inputData != null && inputData.length > 0) {
-                int resultIdx = runInference(inputData);
-                Direction direction = Direction.values()[resultIdx];
-                if (eogEventListener != null) {
-                    eogEventListener.onEyeMovement(direction);
+                if (inputData != null && inputData.length > 0) {
+                    int resultIdx = runInference(inputData);
+                    Direction direction = Direction.values()[resultIdx];
+                    if (eogEventListener != null) {
+                        if(deprecateSecondMovement == false) {
+                            eogEventListener.onEyeMovement(direction);
+                            if(direction != Direction.BLINK) {
+                                deprecateSecondMovement = true;
+                            }
+                        }else {
+                            deprecateSecondMovement = false;
+                            Toast.makeText(context.getApplicationContext(),
+                                    "Return Movement Deprecated", Toast.LENGTH_SHORT).show();
+                        }
+                    }
                 }
-//                }
                 InferenceFlag = false; //추론 끝
                 MovementDetection = false; // 감지 끝.
             }
