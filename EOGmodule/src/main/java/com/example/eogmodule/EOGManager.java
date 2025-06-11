@@ -54,13 +54,11 @@ public class EOGManager {
     public enum Direction { LEFT_UP, UP, RIGHT_UP, LEFT, RIGHT, LEFT_DOWN, DOWN, RIGHT_DOWN, BLINK }
 
     private static final float[] FEATURE_MEANS = new float[]{
-            322.158780f, -325.076977f, 126.873161f, 0.043643f, 1.862295f, 3.890496f,
-            364.921066f, -385.631221f, 159.955604f, -0.160811f, 0.760025f, 22.196281f
+            355.335744f, -376.366756f, 153.039849f, 0.021179f, 1.430420f, 16.564912f, 569.437905f, -433.457548f, 204.817326f, 0.150421f, 1.344091f, 19.210526f
     };
 
     private static final float[] FEATURE_STDS = new float[]{
-            172.854051f, 195.419945f, 58.375951f, 1.274993f, 1.365249f, 13.432352f,
-            280.790807f, 255.677729f, 123.099283f, 0.927015f, 3.265303f, 37.137848f
+            180.891241f, 221.467762f, 84.767934f, 1.177547f, 1.630771f, 32.789764f, 552.479901f, 265.772407f, 157.987495f, 1.136646f, 3.364033f, 34.947749f
     };
 
     public interface EOGEventListener {
@@ -89,7 +87,7 @@ public class EOGManager {
         // ANN classifier initialize
         try {
             // assets/model_traced_84.pt를 내부 저장소로 복사
-            String modelFilePath = copyAssetToDisk(context.getAssets(), "model_traced_84z.pt");
+            String modelFilePath = copyAssetToDisk(context.getAssets(), "model_traced_84_blink.pt");
             module = Module.load(modelFilePath);
             Log.d(TAG, "PyTorch module loaded successfully from: " + modelFilePath);
         } catch (IOException e) {
