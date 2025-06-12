@@ -54,11 +54,13 @@ public class EOGManager {
     public enum Direction { LEFT_UP, UP, RIGHT_UP, LEFT, RIGHT, LEFT_DOWN, DOWN, RIGHT_DOWN, BLINK }
 
     private static final float[] FEATURE_MEANS = new float[]{
-            355.335744f, -376.366756f, 153.039849f, 0.021179f, 1.430420f, 16.564912f, 569.437905f, -433.457548f, 204.817326f, 0.150421f, 1.344091f, 19.210526f
+            322.158780f, -325.076977f, 126.873161f, 0.043643f, 1.862295f, 3.890496f,
+            364.921066f, -385.631221f, 159.955604f, -0.160811f, 0.760025f, 22.196281f
     };
 
     private static final float[] FEATURE_STDS = new float[]{
-            180.891241f, 221.467762f, 84.767934f, 1.177547f, 1.630771f, 32.789764f, 552.479901f, 265.772407f, 157.987495f, 1.136646f, 3.364033f, 34.947749f
+            172.854051f, 195.419945f, 58.375951f, 1.274993f, 1.365249f, 13.432352f,
+            280.790807f, 255.677729f, 123.099283f, 0.927015f, 3.265303f, 37.137848f
     };
 
     public interface EOGEventListener {
@@ -87,7 +89,7 @@ public class EOGManager {
         // ANN classifier initialize
         try {
             // assets/model_traced_84.pt를 내부 저장소로 복사
-            String modelFilePath = copyAssetToDisk(context.getAssets(), "model_traced_84_blink.pt");
+            String modelFilePath = copyAssetToDisk(context.getAssets(), "model_traced_84z.pt");
             module = Module.load(modelFilePath);
             Log.d(TAG, "PyTorch module loaded successfully from: " + modelFilePath);
         } catch (IOException e) {
@@ -298,7 +300,7 @@ public class EOGManager {
         }
 
         //움직임을 감지하면 플래그 활성화. 및 타이머 활성화
-        if(!MovementDetection && Math.abs(matched_x) > 0.25 || Math.abs(matched_y) > 0.25) {
+        if(!MovementDetection && Math.abs(matched_x) > 0.30 || Math.abs(matched_y) > 0.30) {
             MovementDetection = true;
             MovementDetectedTime = System.currentTimeMillis();
         }
@@ -315,10 +317,10 @@ public class EOGManager {
         if(InferenceFlag) {
             if (currentTime - lastInferenceTime >= 1) {
                 lastInferenceTime = currentTime + 1000;
-            // lastInferenceTime을 현재 시점 +1초로 설정
-            // 1초 동안은 신호 판단 x
-            // 버퍼 데이터를 가공하여 모델 입력용 배열 생성
-            float[] inputData = preprocessBufferData();
+                // lastInferenceTime을 현재 시점 +1초로 설정
+                // 1초 동안은 신호 판단 x
+                // 버퍼 데이터를 가공하여 모델 입력용 배열 생성
+                float[] inputData = preprocessBufferData();
 
                 if (inputData != null && inputData.length > 0) {
                     int resultIdx = runInference(inputData);
