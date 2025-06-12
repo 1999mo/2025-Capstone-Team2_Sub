@@ -77,11 +77,6 @@ public class MainActivity extends AppCompatActivity  {
                     case RIGHT: dirText = "오른쪽"; break;
                     case UP:    dirText = "위";     break;
                     case DOWN:  dirText = "아래";   break;
-                    case LEFT_UP:  dirText = "왼쪽 위";   break;
-                    case RIGHT_UP: dirText = "오른쪽 위"; break;
-                    case LEFT_DOWN: dirText = "왼쪽 아래";     break;
-                    case RIGHT_DOWN:  dirText = "오른쪽 아래";   break;
-                    case BLINK:  dirText = "깜빡임";   break;
                     default:    dirText = "알 수 없음"; break;
                 }
 

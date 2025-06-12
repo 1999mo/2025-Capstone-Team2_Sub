@@ -295,11 +295,10 @@ public class EOGManager {
 
         if(RESET_SIGNAL == 1) {
             deprecateSecondMovement = false;
-            Toast.makeText(context.getApplicationContext(), "Reset", Toast.LENGTH_SHORT).show();
         }
 
         //움직임을 감지하면 플래그 활성화. 및 타이머 활성화
-        if(!MovementDetection && Math.abs(matched_x) > 0.6 || Math.abs(matched_y) > 0.6) {
+        if(!MovementDetection && Math.abs(matched_x) > 0.25 || Math.abs(matched_y) > 0.25) {
             MovementDetection = true;
             MovementDetectedTime = System.currentTimeMillis();
         }
@@ -332,8 +331,6 @@ public class EOGManager {
                             }
                         }else {
                             deprecateSecondMovement = false;
-                            Toast.makeText(context.getApplicationContext(),
-                                    "Return Movement Deprecated", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
